@@ -46,11 +46,12 @@ open Commands;
 let prnt cmd => ApplyCommands.print @@ getWords @@ cmd;
 let executeOrder command a b => prnt command a b;
 
-let executeCommand =
-  fun
-  | Init n => Utils.concatPair "Init" n
-  | Order command a b => executeOrder command a b
-  | Quit => "Quit!";
+let executeCommand (blockWorld: blockWorld) cmd =>
+  switch cmd {
+    | Init n => ApplyCommands.init n
+    | Order command a b => blockWorld
+    | Quit => blockWorld
+  };
 
 let commandList: list commandType = [Init 10, Order MoveOnto 2 3, Quit];
-List.map executeCommand commandList;
+List.fold_left executeCommand [[]] commandList;
