@@ -85,15 +85,15 @@ module RobotBlock = {
       | Commands.Order command a b => blockWorld
       | Commands.Quit => blockWorld
       };
-    /* Arbitrary command list */
-    let commandList: list Commands.commandType = [
-      Commands.Init 10,
-      Commands.Order Commands.MoveOnto 2 3,
-      Commands.Quit
-    ];
     /* Execute all commands and output final blockWorld state */
-    let executeProgram () => List.fold_left executeCommand [[]] commandList |> Render.output;
+    let executeProgram commandList =>
+      List.fold_left executeCommand [[]] commandList |> Render.output;
   };
 };
 
-RobotBlock.Processor.executeProgram ();
+open RobotBlock;
+
+/* Arbitrary command list */
+let commandList = [Commands.Init 10, Commands.Order Commands.MoveOnto 2 3, Commands.Quit];
+
+Processor.executeProgram commandList;
