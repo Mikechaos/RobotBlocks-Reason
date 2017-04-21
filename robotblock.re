@@ -25,18 +25,22 @@ module RobotBlock = {
       | MoveOver => ("Move", "over")
       | PileOnto => ("Pile", "onto")
       | PileOver => ("Pile", "over");
-  };
-  module ApplyCommands = {
-    let init n => Utils.buildListOfStack n []; /* ] */
     let print (first, second) a b => Utils.concatPair first a ^ " " ^ Utils.concatPair second b;
+  };
+  module Actions = {
+    let init n => Utils.buildListOfStack n []; /* ] */
+  };
+  module Render = {
+    let displayStack stack =>
+      List.fold_left (fun output elem => Utils.concatPair output elem) "" stack |> String.trim;
+    let output blockWorld =>
+      List.iteri (fun i a => print_endline (string_of_int i ^ ": " ^ displayStack a)) blockWorld;
   };
 };
 
 open RobotBlock;
 
-open Commands;
-
-let prnt cmd => ApplyCommands.print @@ getWords @@ cmd;
+let prnt cmd => Commands.print @@ Commands.getWords @@ cmd;
 
 let executeOrder command a b => prnt command a b;
 
@@ -52,13 +56,17 @@ let executeOrder command a b => prnt command a b;
  */
 let executeCommand (blockWorld: blockWorld) cmd =>
   switch cmd {
-  | Init n => ApplyCommands.init n
-  | Order command a b => blockWorld
-  | Quit => blockWorld
+  | Commands.Init n => Actions.init n
+  | Commands.Order command a b => blockWorld
+  | Commands.Quit => blockWorld
   };
 
 /* Build command list */
-let commandList: list commandType = [Init 10, Order MoveOnto 2 3, Quit];
+let commandList: list Commands.commandType = [
+  Commands.Init 10,
+  Commands.Order Commands.MoveOnto 2 3,
+  Commands.Quit
+];
 
 /* Execute all commands and output final blockWorld state */
-List.fold_left executeCommand [[]] commandList;
+List.fold_left executeCommand [[]] commandList |> Render.output;
