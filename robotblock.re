@@ -21,11 +21,13 @@ module RobotBlock = {
   type blockWorld = list (list int);
   /* The list of specific action commands */
   module Commands = {
-    type command =
-      | MoveOnto
-      | MoveOver
-      | PileOnto
-      | PileOver;
+    type instruction =
+      | Onto
+      | Over;
+    type action 'intstruction =
+      | Move instruction
+      | Pile instruction;
+    type command = action instruction;
     /* The list of all possible commands */
     type commandType =
       | Init int
@@ -34,10 +36,10 @@ module RobotBlock = {
     /* Map all action commands to their string equivalent */
     let mapWords =
       fun
-      | MoveOnto => ("Move", "onto")
-      | MoveOver => ("Move", "over")
-      | PileOnto => ("Pile", "onto")
-      | PileOver => ("Pile", "over");
+      | Move Onto => ("Move", "onto")
+      | Move Over => ("Move", "over")
+      | Pile Onto => ("Pile", "onto")
+      | Pile Over => ("Pile", "over");
     /* Print an action command */
     let print (first, second) a b => Utils.concatPair first a ^ " " ^ Utils.concatPair second b;
   };
@@ -94,6 +96,10 @@ module RobotBlock = {
 open RobotBlock;
 
 /* Arbitrary command list */
-let commandList = [Commands.Init 10, Commands.Order Commands.MoveOnto 2 3, Commands.Quit];
+let commandList = [
+  Commands.Init 10,
+  Commands.Order (Commands.Move Commands.Onto) 2 3,
+  Commands.Quit
+];
 
 Processor.executeProgram commandList;
