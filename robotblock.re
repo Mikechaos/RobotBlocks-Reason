@@ -50,8 +50,7 @@ module RobotBlock = {
     /* Allow to display a stack of blocks separated by a space
      * [1,2,3] => "1 2 3"
      */
-    let displayStack stack =>
-      List.fold_left (fun output elem => Utils.concatPair output elem) "" stack |> String.trim;
+    let displayStack stack => List.fold_left Utils.concatPair "" stack |> String.trim;
     /* Displays "i: "
      * 1 => "1: "
      */
