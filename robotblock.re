@@ -66,36 +66,34 @@ module RobotBlock = {
      * 2:
      */
     let output blockWorld => List.iteri displayLine blockWorld;
+    /* String conterpart of a RobotBlock.CommandType
+     * Only there for convenience
+     * Move 2 3 => "Move 2 onto 3"
+     */
+    let prnt cmd => Commands.print @@ Commands.mapWords @@ cmd;
+  };
+  module Processor = {
+    /* Takes a blockWorld and a list of commands
+     * Returns the new blockWorld
+     * blockWorld => commandType => blockWorld
+     * [[]] => Init 3 => [[1],[2],[3]]
+     *
+     */
+    let executeCommand (blockWorld: blockWorld) cmd =>
+      switch cmd {
+      | Commands.Init n => Actions.init n
+      | Commands.Order command a b => blockWorld
+      | Commands.Quit => blockWorld
+      };
+    /* Arbitrary command list */
+    let commandList: list Commands.commandType = [
+      Commands.Init 10,
+      Commands.Order Commands.MoveOnto 2 3,
+      Commands.Quit
+    ];
+    /* Execute all commands and output final blockWorld state */
+    let executeProgram () => List.fold_left executeCommand [[]] commandList |> Render.output;
   };
 };
 
-open RobotBlock;
-
-/* String conterpart of a RobotBlock.CommandType
- * commandType => string
- * Move 2 3 => "Move 2 onto 3"
- */
-let prnt cmd => Commands.print @@ Commands.mapWords @@ cmd;
-
-/* Takes a blockWorld and a list of commands
- * Returns the new blockWorld
- * blockWorld => commandType => blockWorld
- * [[]] => Init 3 => [[1],[2],[3]]
- *
- */
-let executeCommand (blockWorld: blockWorld) cmd =>
-  switch cmd {
-  | Commands.Init n => Actions.init n
-  | Commands.Order command a b => blockWorld
-  | Commands.Quit => blockWorld
-  };
-
-/* Arbitrary command list */
-let commandList: list Commands.commandType = [
-  Commands.Init 10,
-  Commands.Order Commands.MoveOnto 2 3,
-  Commands.Quit
-];
-
-/* Execute all commands and output final blockWorld state */
-List.fold_left executeCommand [[]] commandList |> Render.output;
+RobotBlock.Processor.executeProgram ();
