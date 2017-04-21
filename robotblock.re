@@ -19,6 +19,14 @@ module RobotBlock = {
     | PileOnto => ("Pile", "onto")
     | PileOver => ("Pile", "over");
 
+
+    let rec _init n acc =>
+      switch (n - 1) {
+        | -1 => acc
+        | n => _init n [[n], ...acc]
+      };
+    let init n => _init n [];
+
 };
 
 open RobotBlock;
