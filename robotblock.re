@@ -1,45 +1,54 @@
+module Utils = {
+  let rec buildListOfStack n stacks =>
+    switch (n - 1) {
+      | -1 => stacks
+      | n => buildListOfStack n [[n], ...stacks]
+    };
+
+  let concatPair word n => word ^ " " ^ string_of_int n ;
+};
+
+
 module RobotBlock = {
-  type blockWorld = array (list int);
 
-  type command =
-    | MoveOnto
-    | MoveOver
-    | PileOnto
-    | PileOver;
+  type blockWorld = list (list int);
 
-  type commandType =
-    | Init int
-    | Order command int int
-    | Quit;
+  module Commands = {
+    type command =
+      | MoveOnto
+      | MoveOver
+      | PileOnto
+      | PileOver;
 
-  let getWords =
-    fun
-    | MoveOnto => ("Move", "onto") 
-    | MoveOver => ("Move", "over")
-    | PileOnto => ("Pile", "onto")
-    | PileOver => ("Pile", "over");
+    type commandType =
+      | Init int
+      | Order command int int
+      | Quit;
 
+    let getWords =
+      fun
+      | MoveOnto => ("Move", "onto")
+      | MoveOver => ("Move", "over")
+      | PileOnto => ("Pile", "onto")
+      | PileOver => ("Pile", "over");
+  };
 
-    let rec _init n acc =>
-      switch (n - 1) {
-        | -1 => acc
-        | n => _init n [[n], ...acc]
-      };
-    let init n => _init n [];
+  module ApplyCommands = {
+    let init n => Utils.buildListOfStack n []; /* ] */
 
+    let print (first, second) a b => (Utils.concatPair first a) ^ " " ^ (Utils.concatPair second b);
+
+  };
 };
 
 open RobotBlock;
-
-let concatPair word n => word ^ " " ^ string_of_int n ;
-let printCommand (first, second) a b => (concatPair first a) ^ " " ^ (concatPair second b);
-
-let prnt cmd => printCommand @@ getWords @@ cmd;
+open Commands;
+let prnt cmd => ApplyCommands.print @@ getWords @@ cmd;
 let executeOrder command a b => prnt command a b;
 
 let executeCommand =
   fun
-  | Init n => concatPair "Init" n
+  | Init n => Utils.concatPair "Init" n
   | Order command a b => executeOrder command a b
   | Quit => "Quit!";
 
