@@ -46,6 +46,16 @@ open Commands;
 let prnt cmd => ApplyCommands.print @@ getWords @@ cmd;
 let executeOrder command a b => prnt command a b;
 
+
+/**
+ * executeCommand: blockWorld => commandType => blockWorld
+ *
+ * @param blockWorld The intial blockWorld
+ * @param cmd        The command to apply
+ *
+ * @return The new block world
+ *
+ */
 let executeCommand (blockWorld: blockWorld) cmd =>
   switch cmd {
     | Init n => ApplyCommands.init n
@@ -53,5 +63,8 @@ let executeCommand (blockWorld: blockWorld) cmd =>
     | Quit => blockWorld
   };
 
+/* Build command list */
 let commandList: list commandType = [Init 10, Order MoveOnto 2 3, Quit];
+
+/* Execute all commands and output final blockWorld state */
 List.fold_left executeCommand [[]] commandList;
