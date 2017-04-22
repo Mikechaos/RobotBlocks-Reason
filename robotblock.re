@@ -16,6 +16,16 @@ module Utils = {
   let concatPair word n => word ^ " " ^ string_of_int n;
 };
 
+module MaybeInt = {
+  type t =
+    | Int int
+    | String string;
+  let makeInt =
+    fun
+    | Int a => a
+    | String s => int_of_string s;
+};
+
 module RobotBlock = {
   /* The block world is a list of stacks containing ints */
   type blockWorld = list (list int);
@@ -46,22 +56,24 @@ module RobotBlock = {
   module Make = {
     open Commands;
     let init n => Init n;
-    let moveOnto a b => Order (Move Onto) a b;
-    let moveOver a b => Order (Move Over) a b;
-    let pileOnto a b => Order (Pile Onto) a b;
-    let pileOver a b => Order (Pile Over) a b;
+    let moveOnto a b => Order (Move Onto) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
+    let moveOver a b => Order (Move Over) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
+    let pileOnto a b => Order (Pile Onto) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
+    let pileOver a b => Order (Pile Over) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
     let quit = Quit;
   };
   module Parser = {
     let break cmd => Str.split (Str.regexp " +") cmd;
     let print token => List.iter (fun s => print_string s) token;
-    /* let makeCmdToken [action, a, instruction, b] => action; */
     let parseCommand =
       fun
       | [n] => Make.init (int_of_string n)
       | [action, a, instruction, b] =>
         switch [action, instruction] {
-        | ["move", "onto"] => Make.moveOnto (int_of_string a) (int_of_string b)
+        | ["move", "onto"] => Make.moveOnto (MaybeInt.String a) (MaybeInt.String b)
+        | ["move", "over"] => Make.moveOver (MaybeInt.String a) (MaybeInt.String b)
+        | ["pile", "onto"] => Make.pileOnto (MaybeInt.String a) (MaybeInt.String b)
+        | ["pile", "over"] => Make.pileOver (MaybeInt.String a) (MaybeInt.String b)
         | _ => Commands.Quit
         }
       | _ => Commands.Quit;
