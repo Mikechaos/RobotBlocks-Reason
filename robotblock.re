@@ -36,7 +36,8 @@ module RobotBlock = {
       | Over;
     type action 'intstruction =
       | Move instruction
-      | Pile instruction;
+      | Pile instruction
+      | InvalidInstruction;
     type command = action instruction;
     /* The list of all possible commands */
     type commandType =
@@ -49,33 +50,36 @@ module RobotBlock = {
       | Move Onto => ("Move", "onto")
       | Move Over => ("Move", "over")
       | Pile Onto => ("Pile", "onto")
-      | Pile Over => ("Pile", "over");
+      | Pile Over => ("Pile", "over")
+      | InvalidInstruction => ("Invalid", "Instruction");
     /* Print an action command */
     let print (first, second) a b => Utils.concatPair first a ^ " " ^ Utils.concatPair second b;
   };
   module Make = {
     open Commands;
     let init n => Init n;
-    let moveOnto a b => Order (Move Onto) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
-    let moveOver a b => Order (Move Over) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
-    let pileOnto a b => Order (Pile Onto) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
-    let pileOver a b => Order (Pile Over) (MaybeInt.makeInt a) (MaybeInt.makeInt b);
+    let moveOnto = Move Onto;
+    let moveOver = Move Over;
+    let pileOnto = Pile Onto;
+    let pileOver = Pile Over;
+    let order command a b => Order command a b;
     let quit = Quit;
   };
   module Parser = {
     let break cmd => Str.split (Str.regexp " +") cmd;
     let print token => List.iter (fun s => print_string s) token;
+    let makeCommand =
+      fun
+      | ["move", "onto"] => Make.moveOnto
+      | ["move", "over"] => Make.moveOver
+      | ["pile", "onto"] => Make.pileOnto
+      | ["pile", "over"] => Make.pileOver
+      | _ => Commands.InvalidInstruction;
     let parseCommand =
       fun
       | [n] => Make.init (int_of_string n)
       | [action, a, instruction, b] =>
-        switch [action, instruction] {
-        | ["move", "onto"] => Make.moveOnto (MaybeInt.String a) (MaybeInt.String b)
-        | ["move", "over"] => Make.moveOver (MaybeInt.String a) (MaybeInt.String b)
-        | ["pile", "onto"] => Make.pileOnto (MaybeInt.String a) (MaybeInt.String b)
-        | ["pile", "over"] => Make.pileOver (MaybeInt.String a) (MaybeInt.String b)
-        | _ => Commands.Quit
-        }
+        Make.order (makeCommand [action, instruction]) (int_of_string a) (int_of_string b)
       | _ => Commands.Quit;
     let exec program => program |> List.map break |> List.map parseCommand;
   };
