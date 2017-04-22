@@ -58,6 +58,7 @@ module RobotBlock = {
   module Make = {
     open Commands;
     let init n => Init n;
+    let initOfString s => init (int_of_string s);
     let order command a b => Order command a b;
     let quit = Quit;
     let makeCommand =
@@ -76,9 +77,13 @@ module RobotBlock = {
   module Parser = {
     let break cmd => Str.split (Str.regexp " +") cmd;
     let print token => List.iter (fun s => print_string s) token;
+    let parseSingleCommandType =
+      fun
+      | "quit" => Commands.Quit
+      | _ as n => Make.initOfString n;
     let parseCommand =
       fun
-      | [n] => Make.init (int_of_string n)
+      | [token] => parseSingleCommandType token
       | [action, a, instruction, b] as tokens => Make.orderOfTokens tokens
       | _ => Commands.Quit;
     let exec program => program |> List.map break |> List.map parseCommand;
