@@ -14,6 +14,7 @@ module Utils = {
    * "move" => 2 => "move 2"
    */
   let concatPair word n => word ^ " " ^ string_of_int n;
+  let reverse l => List.fold_left (fun l2 e => [e, ...l2]) [] l;
 };
 
 module MaybeInt = {
@@ -91,6 +92,26 @@ module RobotBlock = {
   /* All actions to execute on the block world */
   module Actions = {
     let init n => Utils.buildListOfStack n []; /* ] */
+  };
+  module ActionHelpers = {
+    let splitStack s n => {
+      let rec splitRec found l (s1, s2) =>
+        switch l {
+        | [] => (Utils.reverse s1, Utils.reverse s2)
+        /*| [e] => e == n ? (s1,[e, ...s2]) : ([e, ...s1], s2)*/
+        | [e, ...rest] =>
+          found || e == n ?
+            splitRec true rest (insert "Right" e (s1, s2)) :
+            splitRec false rest (insert "Left" e (s1, s2))
+        }
+      and insert dir e (s1, s2) =>
+        switch dir {
+        | "Left" => ([e, ...s1], s2)
+        | "Right" => (s1, [e, ...s2])
+        | _ => (s1, s2)
+        };
+      splitRec false s ([], [])
+    };
   };
   /* Allow to render the block world */
   module Render = {
