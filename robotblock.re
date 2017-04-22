@@ -43,6 +43,15 @@ module RobotBlock = {
     /* Print an action command */
     let print (first, second) a b => Utils.concatPair first a ^ " " ^ Utils.concatPair second b;
   };
+  module Make = {
+    open Commands;
+    let init n => Init n;
+    let moveOnto a b => Order (Move Onto) a b;
+    let moveOver a b => Order (Move Over) a b;
+    let pileOnto a b => Order (Pile Onto) a b;
+    let pileOver a b => Order (Pile Over) a b;
+    let quit = Quit;
+  };
   /* All actions to execute on the block world */
   module Actions = {
     let init n => Utils.buildListOfStack n []; /* ] */
@@ -96,10 +105,6 @@ module RobotBlock = {
 open RobotBlock;
 
 /* Arbitrary command list */
-let commandList = [
-  Commands.Init 10,
-  Commands.Order (Commands.Move Commands.Onto) 2 3,
-  Commands.Quit
-];
+let commandList = [Make.init 10, Make.moveOnto 2 3, Make.quit];
 
 Processor.executeProgram commandList;
