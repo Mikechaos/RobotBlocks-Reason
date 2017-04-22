@@ -52,6 +52,21 @@ module RobotBlock = {
     let pileOver a b => Order (Pile Over) a b;
     let quit = Quit;
   };
+  module Parser = {
+    let break cmd => Str.split (Str.regexp " +") cmd;
+    let print token => List.iter (fun s => print_string s) token;
+    /* let makeCmdToken [action, a, instruction, b] => action; */
+    let parseCommand =
+      fun
+      | [n] => Make.init (int_of_string n)
+      | [action, a, instruction, b] =>
+        switch [action, instruction] {
+        | ["move", "onto"] => Make.moveOnto (int_of_string a) (int_of_string b)
+        | _ => Commands.Quit
+        }
+      | _ => Commands.Quit;
+    let exec program => program |> List.map break |> List.map parseCommand;
+  };
   /* All actions to execute on the block world */
   module Actions = {
     let init n => Utils.buildListOfStack n []; /* ] */
