@@ -29,7 +29,8 @@ module MaybeInt = {
 
 module RobotBlock = {
   /* The block world is a list of stacks containing ints */
-  type blockWorld = list (list int);
+  type stack = {position: int, stack: list int};
+  type blockWorld = list stack;
   /* The list of specific action commands */
   module Commands = {
     type instruction =
@@ -99,7 +100,13 @@ module RobotBlock = {
   };
   /* All actions to execute on the block world */
   module Actions = {
-    let init n => Utils.buildListOfStack n []; /* ] */
+    exception MalFormedStack (string, list int);
+    let indexStack =
+      fun
+      | [position, ...rest] as stack => {position, stack}
+      | _ as stack => raise (MalFormedStack ("Stack is malformed", stack));
+    let mapIndexStack world => List.map indexStack world;
+    let init n => [] |> Utils.buildListOfStack n |> mapIndexStack;
   };
   module ActionHelpers = {
     let splitStack s n => {
@@ -136,7 +143,8 @@ module RobotBlock = {
      * 1: 1 2
      * 2:
      */
-    let output blockWorld => List.iteri displayLine blockWorld;
+    let deIndexStack world => List.map (fun {position, stack} => stack) world;
+    let output blockWorld => List.iteri displayLine (blockWorld |> deIndexStack);
     /* String conterpart of a RobotBlock.CommandType
      * Only there for convenience
      * Move 2 3 => "Move 2 onto 3"
