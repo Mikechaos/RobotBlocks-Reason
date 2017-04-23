@@ -122,6 +122,18 @@ module RobotBlock = {
       and insertRight e (s1, s2) => (s1, [e, ...s2]);
       splitRec false s ([], [])
     };
+    let push world n d =>
+      List.map
+        (
+          fun ({position, stack: currentStack} as record) =>
+            position == d ?
+              List.fold_left
+                (fun {position, stack} e => {position, stack: [e, ...stack]})
+                {position, stack: [n]}
+                record.stack :
+              record
+        )
+        world;
   };
   /* Allow to render the block world */
   module Render = {
