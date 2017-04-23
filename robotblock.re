@@ -49,7 +49,6 @@ module RobotBlock = {
       | Quit;
     type program =
       | List commandType program
-      | Command commandType
       | NoMore;
     type state =
       | BlockWorld blockWorld
@@ -182,20 +181,21 @@ module Execute = {
   /* | Commands.BlockWorldProcessor blockWorld Commands.NoMore => Commands.NoMore */
   /* | Commands.BlockWorldProcessor blockWorld (Commands.Command cmd) => Commands.Command cmd */
   /* | Commands.BlockWorldProcessor blockWorld (Commands.List cmd _) => Commands.Command cmd; */
-  let process state => {
+  let rec process state => {
     let (world, command) = (extractWorld state, extractCommand state);
     Render.output world;
     /* let rec execCommand => */
     switch command {
     | Commands.NoMore => print_endline "No more commands to execute! :("
-    | Commands.Command Commands.Quit => print_endline "Already leaving???"
-    | Commands.List cmd rest => print_endline "I need to recurse!"
-    | Commands.Command cmd =>
+    | Commands.List cmd rest =>
       switch cmd {
       | Commands.Init n =>
         print_endline ("I will happily execute this init " ^ string_of_int n ^ " command!")
+      | Commands.Quit => print_endline "Already leaving???"
       | _ => print_endline "No Match :("
-      }
+      };
+      process (Commands.BlockWorldProcessor world rest);
+      print_endline "I need to recurse!"
     };
     state
   };
