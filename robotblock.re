@@ -164,4 +164,40 @@ module RobotBlock = {
 };
 
 open RobotBlock;
+
+let myState =
+  Commands.BlockWorldProcessor myBlockWorld (Commands.List (Make.init 10) Commands.NoMore);
+
+module type WorldProcessor = {let process: Commands.state => blockWorld;};
+
+module Execute = {
+  let extractWorld =
+    fun
+    | Commands.BlockWorld blockWorld => blockWorld
+    | Commands.BlockWorldProcessor blockWorld cmds => blockWorld;
+  let extractCommand =
+    fun
+    | Commands.BlockWorld blockWorld => Commands.NoMore
+    | Commands.BlockWorldProcessor blockWorld cmd => cmd;
+  /* | Commands.BlockWorldProcessor blockWorld Commands.NoMore => Commands.NoMore */
+  /* | Commands.BlockWorldProcessor blockWorld (Commands.Command cmd) => Commands.Command cmd */
+  /* | Commands.BlockWorldProcessor blockWorld (Commands.List cmd _) => Commands.Command cmd; */
+  let process state => {
+    let (world, command) = (extractWorld state, extractCommand state);
+    Render.output world;
+    /* let rec execCommand => */
+    switch command {
+    | Commands.NoMore => print_endline "No more commands to execute! :("
+    | Commands.Command Commands.Quit => print_endline "Already leaving???"
+    | Commands.List cmd rest => print_endline "I need to recurse!"
+    | Commands.Command cmd =>
+      switch cmd {
+      | Commands.Init n =>
+        print_endline ("I will happily execute this init " ^ string_of_int n ^ " command!")
+      | _ => print_endline "No Match :("
+      }
+    };
+    state
+  };
+};
 /* Arbitrary command list */
