@@ -114,9 +114,11 @@ module RobotBlock = {
         switch l {
         | [] => (Utils.reverse s1, Utils.reverse s2)
         | [e, ...rest] =>
-          found || e == n ?
+          found ?
             splitRec true rest (insertRight e (s1, s2)) :
-            splitRec false rest (insertLeft e (s1, s2))
+            e == n ?
+              splitRec true rest (insertLeft e (s1, s2)) :
+              splitRec false rest (insertLeft e (s1, s2))
         }
       and insertLeft e (s1, s2) => ([e, ...s1], s2)
       and insertRight e (s1, s2) => (s1, [e, ...s2]);
