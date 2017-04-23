@@ -40,11 +40,20 @@ module RobotBlock = {
       | Pile instruction
       | InvalidInstruction;
     type command = action instruction;
+    type commands =
+      | List command;
     /* The list of all possible commands */
     type commandType =
       | Init int
       | Order command int int
       | Quit;
+    type program =
+      | List commandType program
+      | Command commandType
+      | NoMore;
+    type state =
+      | BlockWorld blockWorld
+      | BlockWorldProcessor blockWorld program;
     /* Map all action commands to their string equivalent */
     let mapWords =
       fun
