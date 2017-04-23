@@ -134,6 +134,18 @@ module RobotBlock = {
               record
         )
         world;
+    let pop world n d =>
+      List.map
+        (
+          fun ({position, stack: currentStack} as record) =>
+            position == d ?
+              List.fold_left
+                (fun {position, stack} e => {position, stack: n == e ? stack : [e, ...stack]})
+                {position, stack: []}
+                record.stack :
+              record
+        )
+        world;
   };
   /* Allow to render the block world */
   module Render = {
