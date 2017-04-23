@@ -188,13 +188,34 @@ module Execute = {
     switch command {
     | Commands.NoMore => print_endline "No more commands to execute! :("
     | Commands.List cmd rest =>
-      switch cmd {
-      | Commands.Init n =>
-        print_endline ("I will happily execute this init " ^ string_of_int n ^ " command!")
-      | Commands.Quit => print_endline "Already leaving???"
-      | _ => print_endline "No Match :("
-      };
-      process (Commands.BlockWorldProcessor world rest);
+      let newWorld =
+        switch cmd {
+        | Commands.Init n =>
+          print_endline ("I will happily execute this init " ^ string_of_int n ^ " command!");
+          world
+        | Commands.Order order a b =>
+          switch order {
+          | Commands.Move Commands.Onto =>
+            print_endline ("OK Chief! Moving " ^ string_of_int a ^ " onto " ^ string_of_int b);
+            world
+          | Commands.Move Commands.Over =>
+            print_endline ("OK Chief! Moving " ^ string_of_int a ^ " over " ^ string_of_int b);
+            world
+          | Commands.Pile Commands.Onto =>
+            print_endline ("OK Chief! Piling " ^ string_of_int a ^ " onto " ^ string_of_int b);
+            world
+          | Commands.Pile Commands.Over =>
+            print_endline ("OK Chief! Piling " ^ string_of_int a ^ " over " ^ string_of_int b);
+            world
+          | _ =>
+            print_endline "I don't take your orders";
+            world
+          }
+        | Commands.Quit =>
+          print_endline "Already leaving???";
+          world
+        };
+      process (Commands.BlockWorldProcessor newWorld rest);
       print_endline "I need to recurse!"
     };
     state
