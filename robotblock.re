@@ -221,4 +221,13 @@ module Execute = {
     state
   };
 };
+
+let p =
+  Parser.exec ["10", "move 0 onto 1", "move 2 over 1", "pile 1 onto 4", "pile 7 over 0", "quit"];
+
+let p2 = List.fold_left (fun p3 c => Commands.List c p3) Commands.NoMore (Utils.reverse p);
+
+let myState3 = Commands.BlockWorldProcessor myBlockWorld p2;
+
+Execute.process myState3;
 /* Arbitrary command list */
