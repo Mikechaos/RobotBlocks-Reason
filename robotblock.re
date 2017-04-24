@@ -138,7 +138,7 @@ module RobotBlock = {
     let find b world =>
       List.fold_left
         (fun index {position, stack} => List.exists (fun x => x == b) stack ? position : index)
-        1
+        0
         world;
     let splitStack s n => {
       let rec splitRec found l (s1, s2) =>
