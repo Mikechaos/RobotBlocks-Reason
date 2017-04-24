@@ -22,7 +22,17 @@ module RobotBlock = {
   type blockStack = {position: int, stack: list int};
   type blockWorld = list blockStack;
   /* The list of specific action commands */
-  module Commands = {
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   *                                       *
+   *                 Grammar               *
+   *                                       *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Defines the Grammar
+   */
+  module Grammar = {
     type instruction =
       | Onto
       | Over;
@@ -52,11 +62,19 @@ module RobotBlock = {
       | Pile Onto => ("Pile", "onto")
       | Pile Over => ("Pile", "over")
       | InvalidInstruction => ("Invalid", "Instruction");
-    /* Print an action command */
-    let print (first, second) a b => Utils.concatPair first a ^ " " ^ Utils.concatPair second b;
   };
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   *                                       *
+   *                    Make               *
+   *                                       *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Makers for the various block world types
+   */
   module Make = {
-    open Commands;
+    open Grammar;
     let init n => Init n;
     let initOfString s => init (int_of_string s);
     let order command a b => Order command a b;
@@ -67,7 +85,7 @@ module RobotBlock = {
       | ["move", "over"] => Move Over
       | ["pile", "onto"] => Pile Onto
       | ["pile", "over"] => Pile Over
-      | _ => Commands.InvalidInstruction;
+      | _ => Grammar.InvalidInstruction;
     let orderOfString command a b => Order command (int_of_string a) (int_of_string b);
     let orderOfTokens =
       fun
@@ -75,28 +93,47 @@ module RobotBlock = {
       | _ => Quit;
     let robot world =>
       fun
-      | NoMore => Commands.BlockWorld world
-      | List cmd rest => Commands.BlockWorldProcessor world (Commands.List cmd rest);
+      | NoMore => Grammar.BlockWorld world
+      | List cmd rest => Grammar.BlockWorldProcessor world (Grammar.List cmd rest);
   };
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   *                                       *
+   *                Parser                 *
+   *                                       *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Parse the input
+   */
   module Parser = {
     let break cmd => Str.split (Str.regexp " +") cmd;
     let breakList l => List.map break l;
     let print token => List.iter (fun s => print_string s) token;
     let parseSingleCommandType =
       fun
-      | "quit" => Commands.Quit
+      | "quit" => Grammar.Quit
       | _ as n => Make.initOfString n;
     let parseCommand =
       fun
       | [token] => parseSingleCommandType token
       | [action, a, instruction, b] as tokens => Make.orderOfTokens tokens
-      | _ => Commands.Quit;
+      | _ => Grammar.Quit;
     let parseCommandList l => List.map parseCommand l;
     let makeInitialState p =>
-      List.fold_left (fun rest cmd => Commands.List cmd rest) Commands.NoMore (Utils.reverse p);
+      List.fold_left (fun rest cmd => Grammar.List cmd rest) Grammar.NoMore (Utils.reverse p);
     let exec program => program |> breakList |> parseCommandList |> makeInitialState;
   };
-  /* All actions to execute on the block world */
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   *                                       *
+   *             Action Helpers            *
+   *                                       *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Helpers for actions to execute on the block world
+   */
   module ActionHelpers = {
     let find b world =>
       List.fold_left
@@ -172,6 +209,16 @@ module RobotBlock = {
       | _ as stack => raise (MalFormedStack ("Stack is malformed", stack));
     let mapIndexStack world => List.map indexStack world;
   };
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   *                                       *
+   *               Action                  *
+   *                                       *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Allow to render the block world
+   */
   module Actions = {
     let init n => [] |> Utils.buildListOfStack n |> ActionHelpers.mapIndexStack;
     let moveOnto a b world => {
@@ -186,7 +233,16 @@ module RobotBlock = {
       world |> ActionHelpers.unstack a positionA |> ActionHelpers.move a positionA positionB
     };
   };
-  /* Allow to render the block world */
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   *                                       *
+   *               Render                  *
+   *                                       *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Allow to render the block world
+   */
   module Render = {
     /* Allow to display a stack of blocks separated by a space
      * [1,2,3] => "1 2 3"
@@ -212,27 +268,38 @@ module RobotBlock = {
      * Only there for convenience
      * Move 2 3 => "Move 2 onto 3"
      */
-    let prnt cmd => Commands.print @@ Commands.mapWords @@ cmd;
+    /* Print an action command */
+    let print (first, second) a b => Utils.concatPair first a ^ " " ^ Utils.concatPair second b;
+    let prnt cmd => print @@ Grammar.mapWords @@ cmd;
   };
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   *                                       *
+   *               Execute                 *
+   *                                       *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   */
   module Execute = {
     let feed program => Make.robot [] program;
     let processOrder a b world =>
       fun
-      | Commands.Move Commands.Onto => Actions.moveOnto a b world
-      | Commands.Move Commands.Over => Actions.moveOver a b world
-      | Commands.Pile Commands.Onto => world /* TODO implement pile onto */
-      | Commands.Pile Commands.Over => world /* TODO implement pile over */
+      | Grammar.Move Grammar.Onto => Actions.moveOnto a b world
+      | Grammar.Move Grammar.Over => Actions.moveOver a b world
+      | Grammar.Pile Grammar.Onto => world /* TODO implement pile onto */
+      | Grammar.Pile Grammar.Over => world /* TODO implement pile over */
       | _ => world;
     let processList world rest =>
       fun
-      | Commands.Init n => Make.robot (Actions.init n) rest
-      | Commands.Order order a b => Make.robot (processOrder a b world order) rest
-      | Commands.Quit => Make.robot world Commands.NoMore;
+      | Grammar.Init n => Make.robot (Actions.init n) rest
+      | Grammar.Order order a b => Make.robot (processOrder a b world order) rest
+      | Grammar.Quit => Make.robot world Grammar.NoMore;
     let rec process =
       fun
-      | Commands.BlockWorld world => world
-      | Commands.BlockWorldProcessor world Commands.NoMore => world
-      | Commands.BlockWorldProcessor world (Commands.List cmd rest) =>
+      | Grammar.BlockWorld world => world
+      | Grammar.BlockWorldProcessor world Grammar.NoMore => world
+      | Grammar.BlockWorldProcessor world (Grammar.List cmd rest) =>
         process (processList world rest cmd);
   };
 };
