@@ -158,6 +158,10 @@ module RobotBlock = {
     let takeStack (stack, unstack) => stack;
     let takeUnstack (stack, unstack) => unstack;
     let push n p world =>
+      /* TODO - Refactor these List.map List.fold patterns
+       * The whole block world manipulation needs some love
+       * This is some simple matrix manipulation
+       */
       List.map
         (
           fun ({position, stack: currentStack} as record) =>
@@ -190,6 +194,11 @@ module RobotBlock = {
         []
         world;
     let restack s world => List.fold_left (fun world x => push x x world) world s;
+    /* TODO - This portion needs complete rework.
+     * unstack is ugly and uselessly inefficient
+     * I need to create a partial operation type
+     * allowing to chain unfinished operation one into another
+     */
     let unstack n p world => {
       let newWorld =
         List.map
