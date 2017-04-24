@@ -224,22 +224,25 @@ module RobotBlock = {
      */
     let prnt cmd => Commands.print @@ Commands.mapWords @@ cmd;
   };
-  module Processor = {
-    /* Takes a blockWorld and a list of commands
-     * Returns the new blockWorld
-     * blockWorld => commandType => blockWorld
-     * [[]] => Init 3 => [[1],[2],[3]]
-     *
-     */
-    let executeCommand (blockWorld: blockWorld) cmd =>
-      switch cmd {
-      | Commands.Init n => Actions.init n
-      | Commands.Order command a b => blockWorld
-      | Commands.Quit => blockWorld
-      };
-    /* Execute all commands and output final blockWorld state */
-    let executeProgram commandList =>
-      List.fold_left executeCommand [[]] commandList |> Render.output;
+  module Execute = {
+    let processOrder a b world =>
+      fun
+      | Commands.Move Commands.Onto => Actions.moveOnto a b world
+      | Commands.Move Commands.Over => Actions.moveOver a b world
+      | Commands.Pile Commands.Onto => world
+      | Commands.Pile Commands.Over => world
+      | _ => world;
+    let processList world rest =>
+      fun
+      | Commands.Init n => Make.state (Actions.init n) rest
+      | Commands.Order order a b => Make.state (processOrder a b world order) rest
+      | Commands.Quit => Make.state world Commands.NoMore;
+    let rec process =
+      fun
+      | Commands.BlockWorld world => world
+      | Commands.BlockWorldProcessor world Commands.NoMore => world
+      | Commands.BlockWorldProcessor world (Commands.List cmd rest) =>
+        process (processList world rest cmd);
   };
 };
 
@@ -250,58 +253,6 @@ let myState =
 
 module type WorldProcessor = {let process: Commands.state => blockWorld;};
 
-module Execute = {
-  let extractWorld =
-    fun
-    | Commands.BlockWorld blockWorld => blockWorld
-    | Commands.BlockWorldProcessor blockWorld cmds => blockWorld;
-  let extractCommand =
-    fun
-    | Commands.BlockWorld blockWorld => Commands.NoMore
-    | Commands.BlockWorldProcessor blockWorld cmd => cmd;
-  /* | Commands.BlockWorldProcessor blockWorld Commands.NoMore => Commands.NoMore */
-  /* | Commands.BlockWorldProcessor blockWorld (Commands.Command cmd) => Commands.Command cmd */
-  /* | Commands.BlockWorldProcessor blockWorld (Commands.List cmd _) => Commands.Command cmd; */
-  let rec process state => {
-    let (world, command) = (extractWorld state, extractCommand state);
-    Render.output world;
-    /* let rec execCommand => */
-    switch command {
-    | Commands.NoMore => print_endline "No more commands to execute! :("
-    | Commands.List cmd rest =>
-      let newWorld =
-        switch cmd {
-        | Commands.Init n =>
-          print_endline ("I will happily execute this init " ^ string_of_int n ^ " command!");
-          world
-        | Commands.Order order a b =>
-          switch order {
-          | Commands.Move Commands.Onto =>
-            print_endline ("OK Chief! Moving " ^ string_of_int a ^ " onto " ^ string_of_int b);
-            world
-          | Commands.Move Commands.Over =>
-            print_endline ("OK Chief! Moving " ^ string_of_int a ^ " over " ^ string_of_int b);
-            world
-          | Commands.Pile Commands.Onto =>
-            print_endline ("OK Chief! Piling " ^ string_of_int a ^ " onto " ^ string_of_int b);
-            world
-          | Commands.Pile Commands.Over =>
-            print_endline ("OK Chief! Piling " ^ string_of_int a ^ " over " ^ string_of_int b);
-            world
-          | _ =>
-            print_endline "I don't take your orders";
-            world
-          }
-        | Commands.Quit =>
-          print_endline "Already leaving???";
-          world
-        };
-      process (Commands.BlockWorldProcessor newWorld rest);
-      print_endline "I need to recurse!"
-    };
-    state
-  };
-};
 
 let p =
   Parser.exec ["10", "move 0 onto 1", "move 2 over 1", "pile 1 onto 4", "pile 7 over 0", "quit"];
