@@ -129,27 +129,29 @@ module RobotBlock = {
       and insertRight e (s1, s2) => (s1, [e, ...s2]);
       splitRec false s ([], [])
     };
-    let push world n d =>
+    let takeStack (stack, unstack) => stack;
+    let takeUnstack (stack, unstack) => unstack;
+    let push n p world =>
       List.map
         (
           fun ({position, stack: currentStack} as record) =>
-            position == d ?
+            position == p ?
               List.fold_left
                 (fun {position, stack} e => {position, stack: [e, ...stack]})
                 {position, stack: [n]}
-                record.stack :
+                (Utils.reverse record.stack) :
               record
         )
         world;
-    let pop world n d =>
+    let pop n p world =>
       List.map
         (
           fun ({position, stack: currentStack} as record) =>
-            position == d ?
+            position == p ?
               List.fold_left
                 (fun {position, stack} e => {position, stack: n == e ? stack : [e, ...stack]})
                 {position, stack: []}
-                record.stack :
+                (Utils.reverse record.stack) :
               record
         )
         world;
