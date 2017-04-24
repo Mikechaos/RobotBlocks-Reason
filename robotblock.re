@@ -109,6 +109,11 @@ module RobotBlock = {
     let init n => [] |> Utils.buildListOfStack n |> mapIndexStack;
   };
   module ActionHelpers = {
+    let find b world =>
+      List.fold_left
+        (fun index {position, stack} => List.exists (fun x => x == b) stack ? position : index)
+        1
+        world;
     let splitStack s n => {
       let rec splitRec found l (s1, s2) =>
         switch l {
