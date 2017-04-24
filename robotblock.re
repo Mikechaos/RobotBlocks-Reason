@@ -29,8 +29,8 @@ module MaybeInt = {
 
 module RobotBlock = {
   /* The block world is a list of stacks containing ints */
-  type stack = {position: int, stack: list int};
-  type blockWorld = list stack;
+  type blockStack = {position: int, stack: list int};
+  type blockWorld = list blockStack;
   /* The list of specific action commands */
   module Commands = {
     type instruction =
