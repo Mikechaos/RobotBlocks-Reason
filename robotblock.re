@@ -230,6 +230,12 @@ module RobotBlock = {
    */
   module Actions = {
     let init n => [] |> Utils.buildListOfStack n |> ActionHelpers.mapIndexStack;
+    /* TODO - Define a former grammar for all sub actions
+     * Would be awesome to be able to write something like
+     * let moveOnto a b world => Find a And Find B And Unstack a And Unstack b And Move a b
+     * I don't know how doable this is, namely because the current memoization (positionA, positionB)
+     * Definitely work exploring though
+     */
     let moveOnto a b world => {
       let positionA = ActionHelpers.find a world;
       let positionB = ActionHelpers.find b world;
