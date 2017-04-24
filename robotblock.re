@@ -17,16 +17,6 @@ module Utils = {
   let reverse l => List.fold_left (fun l2 e => [e, ...l2]) [] l;
 };
 
-module MaybeInt = {
-  type t =
-    | Int int
-    | String string;
-  let makeInt =
-    fun
-    | Int a => a
-    | String s => int_of_string s;
-};
-
 module RobotBlock = {
   /* The block world is a list of stacks containing ints */
   type blockStack = {position: int, stack: list int};
@@ -51,7 +41,7 @@ module RobotBlock = {
     type program =
       | List commandType program
       | NoMore;
-    type state =
+    type robot =
       | BlockWorld blockWorld
       | BlockWorldProcessor blockWorld program;
     /* Map all action commands to their string equivalent */
@@ -83,7 +73,7 @@ module RobotBlock = {
       fun
       | [action, a, instruction, b] => orderOfString (makeCommand [action, instruction]) a b
       | _ => Quit;
-    let state world =>
+    let robot world =>
       fun
       | NoMore => Commands.BlockWorld world
       | List cmd rest => Commands.BlockWorldProcessor world (Commands.List cmd rest);
@@ -225,18 +215,19 @@ module RobotBlock = {
     let prnt cmd => Commands.print @@ Commands.mapWords @@ cmd;
   };
   module Execute = {
+    let feed program => Make.robot [] program;
     let processOrder a b world =>
       fun
       | Commands.Move Commands.Onto => Actions.moveOnto a b world
       | Commands.Move Commands.Over => Actions.moveOver a b world
-      | Commands.Pile Commands.Onto => world
-      | Commands.Pile Commands.Over => world
+      | Commands.Pile Commands.Onto => world /* TODO implement pile onto */
+      | Commands.Pile Commands.Over => world /* TODO implement pile over */
       | _ => world;
     let processList world rest =>
       fun
-      | Commands.Init n => Make.state (Actions.init n) rest
-      | Commands.Order order a b => Make.state (processOrder a b world order) rest
-      | Commands.Quit => Make.state world Commands.NoMore;
+      | Commands.Init n => Make.robot (Actions.init n) rest
+      | Commands.Order order a b => Make.robot (processOrder a b world order) rest
+      | Commands.Quit => Make.robot world Commands.NoMore;
     let rec process =
       fun
       | Commands.BlockWorld world => world
@@ -248,23 +239,22 @@ module RobotBlock = {
 
 open RobotBlock;
 
-let program =
-  Parser.exec [
-    "15",
-    "move 0 onto 1",
-    "move 2 over 0",
-    "move 1 onto 4",
-    "move 7 over 0",
-    "move 5 onto 4",
-    "move 3 over 2",
-    "move 6 over 1",
-    "move 9 over 0",
-    "move 14 over 0",
-    "move 12 over 0",
-    "move 11 over 0",
-    "move 13 over 0",
-    "move 10 over 0",
-    "quit"
-  ];
+let program = [
+  "15",
+  "move 0 onto 1",
+  "move 2 over 0",
+  "move 1 onto 4",
+  "move 7 over 0",
+  "move 5 onto 4",
+  "move 3 over 2",
+  "move 6 over 1",
+  "move 9 over 0",
+  "move 14 over 0",
+  "move 12 over 0",
+  "move 11 over 0",
+  "move 13 over 0",
+  "move 10 over 0",
+  "quit"
+];
 
-program |> Make.state [] |> Execute.process |> Render.output;
+program |> Parser.exec |> Execute.feed |> Execute.process |> Render.output;
