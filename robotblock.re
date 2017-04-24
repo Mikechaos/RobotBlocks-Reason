@@ -83,6 +83,10 @@ module RobotBlock = {
       fun
       | [action, a, instruction, b] => orderOfString (makeCommand [action, instruction]) a b
       | _ => Quit;
+    let state world =>
+      fun
+      | NoMore => Commands.BlockWorld world
+      | List cmd rest => Commands.BlockWorldProcessor world (Commands.List cmd rest);
   };
   module Parser = {
     let break cmd => Str.split (Str.regexp " +") cmd;
