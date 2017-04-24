@@ -182,6 +182,11 @@ module RobotBlock = {
       world |> ActionHelpers.unstack a positionA |> ActionHelpers.unstack b positionB |>
       ActionHelpers.move a positionA positionB
     };
+    let moveOver a b world => {
+      let positionA = ActionHelpers.find a world;
+      let positionB = ActionHelpers.find b world;
+      world |> ActionHelpers.unstack a positionA |> ActionHelpers.move a positionA positionB
+    };
   };
   /* Allow to render the block world */
   module Render = {
