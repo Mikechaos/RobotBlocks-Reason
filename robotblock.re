@@ -90,6 +90,7 @@ module RobotBlock = {
   };
   module Parser = {
     let break cmd => Str.split (Str.regexp " +") cmd;
+    let breakList l => List.map break l;
     let print token => List.iter (fun s => print_string s) token;
     let parseSingleCommandType =
       fun
@@ -100,7 +101,10 @@ module RobotBlock = {
       | [token] => parseSingleCommandType token
       | [action, a, instruction, b] as tokens => Make.orderOfTokens tokens
       | _ => Commands.Quit;
-    let exec program => program |> List.map break |> List.map parseCommand;
+    let parseCommandList l => List.map parseCommand l;
+    let makeInitialState p =>
+      List.fold_left (fun rest cmd => Commands.List cmd rest) Commands.NoMore (Utils.reverse p);
+    let exec program => program |> breakList |> parseCommandList |> makeInitialState;
   };
   /* All actions to execute on the block world */
   module ActionHelpers = {
