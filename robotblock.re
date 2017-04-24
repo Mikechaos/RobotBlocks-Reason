@@ -99,15 +99,6 @@ module RobotBlock = {
     let exec program => program |> List.map break |> List.map parseCommand;
   };
   /* All actions to execute on the block world */
-  module Actions = {
-    exception MalFormedStack (string, list int);
-    let indexStack =
-      fun
-      | [position, ...rest] as stack => {position, stack}
-      | _ as stack => raise (MalFormedStack ("Stack is malformed", stack));
-    let mapIndexStack world => List.map indexStack world;
-    let init n => [] |> Utils.buildListOfStack n |> mapIndexStack;
-  };
   module ActionHelpers = {
     let find b world =>
       List.fold_left
@@ -175,7 +166,22 @@ module RobotBlock = {
       let currentUnstack = runstack n p world;
       newWorld |> restack currentUnstack
     };
-    let move a b world => world |> push a b |> pop a a;
+    let move a positionA positionB world => world |> push a positionB |> pop a positionA;
+  };
+  module Actions = {
+    exception MalFormedStack (string, list int);
+    let indexStack =
+      fun
+      | [position, ...rest] as stack => {position, stack}
+      | _ as stack => raise (MalFormedStack ("Stack is malformed", stack));
+    let mapIndexStack world => List.map indexStack world;
+    let init n => [] |> Utils.buildListOfStack n |> mapIndexStack;
+    let moveOnto a b world => {
+      let positionA = ActionHelpers.find a world;
+      let positionB = ActionHelpers.find b world;
+      world |> ActionHelpers.unstack a positionA |> ActionHelpers.unstack b positionB |>
+      ActionHelpers.move a positionA positionB
+    };
   };
   /* Allow to render the block world */
   module Render = {
