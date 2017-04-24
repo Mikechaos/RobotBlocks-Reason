@@ -154,7 +154,7 @@ module RobotBlock = {
               record
         )
         world;
-    let runstack b p world =>
+    let getUnstack b p world =>
       List.fold_left
         (
           fun finalStack {position, stack} =>
@@ -171,19 +171,19 @@ module RobotBlock = {
               position == p ? {position, stack: n |> splitStack stack |> takeStack} : record
           )
           world;
-      let currentUnstack = runstack n p world;
+      let currentUnstack = getUnstack n p world;
       newWorld |> restack currentUnstack
     };
     let move a positionA positionB world => world |> push a positionB |> pop a positionA;
-  };
-  module Actions = {
     exception MalFormedStack (string, list int);
     let indexStack =
       fun
       | [position, ...rest] as stack => {position, stack}
       | _ as stack => raise (MalFormedStack ("Stack is malformed", stack));
     let mapIndexStack world => List.map indexStack world;
-    let init n => [] |> Utils.buildListOfStack n |> mapIndexStack;
+  };
+  module Actions = {
+    let init n => [] |> Utils.buildListOfStack n |> ActionHelpers.mapIndexStack;
     let moveOnto a b world => {
       let positionA = ActionHelpers.find a world;
       let positionB = ActionHelpers.find b world;
