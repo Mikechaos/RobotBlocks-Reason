@@ -91,6 +91,7 @@ module RobotBlock = {
       fun
       | [action, a, instruction, b] => orderOfString (makeCommand [action, instruction]) a b
       | _ => Quit;
+    let commandList rest cmd => Grammar.List cmd rest;
     let robot world =>
       fun
       | NoMore => Grammar.BlockWorld world
@@ -120,8 +121,7 @@ module RobotBlock = {
       | [action, a, instruction, b] as tokens => Make.orderOfTokens tokens
       | _ => Grammar.Quit;
     let parseCommandList l => List.map parseCommand l;
-    let makeInitialState p =>
-      List.fold_left (fun rest cmd => Grammar.List cmd rest) Grammar.NoMore (Utils.reverse p);
+    let makeInitialState p => p |> Utils.reverse |> List.fold_left Make.commandList Grammar.NoMore;
     let exec program => program |> breakList |> parseCommandList |> makeInitialState;
   };
   /*
