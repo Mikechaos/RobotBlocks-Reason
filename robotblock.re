@@ -155,6 +155,27 @@ module RobotBlock = {
               record
         )
         world;
+    let runstack b p world =>
+      List.fold_left
+        (
+          fun finalStack {position, stack} =>
+            position == p ? b |> splitStack stack |> takeUnstack : finalStack
+        )
+        []
+        world;
+    let restack s world => List.fold_left (fun world x => push x x world) world s;
+    let unstack n p world => {
+      let newWorld =
+        List.map
+          (
+            fun ({position, stack} as record) =>
+              position == p ? {position, stack: n |> splitStack stack |> takeStack} : record
+          )
+          world;
+      let currentUnstack = runstack n p world;
+      newWorld |> restack currentUnstack
+    };
+    let move a b world => world |> push a b |> pop a a;
   };
   /* Allow to render the block world */
   module Render = {
