@@ -21,6 +21,9 @@ module RobotBlock = {
   /* The block world is a list of stacks containing ints */
   type blockStack = {position: int, stack: list int};
   type blockWorld = list blockStack;
+  module Exceptions = {
+    exception MalFormedStack (string, list int);
+  };
   /* The list of specific action commands */
   /*
    * * * * * * * * * * * * * * * * * * * * *
