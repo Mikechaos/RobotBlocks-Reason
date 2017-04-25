@@ -154,17 +154,18 @@ module RobotBlock = {
       let completed world => Completed world;
     };
     module Build = {
+      let initialUnstack = ([], []);
+      let makeUnstack world position (stack, unstack) =>
+        Make.unstack world ({position, stack}, unstack);
       let unstack b p world =>
         List.fold_left
           (
             fun finalStack {position, stack} =>
               position == p ? Helpers.splitStack stack b : finalStack
           )
-          ([], [])
-          world |> (
-          fun (stack, unstack) => Make.unstack world ({position: p, stack}, unstack)
-        );
-      ();
+          initialUnstack
+          world |>
+        makeUnstack world p;
     };
     module Process = {
       open Type;
