@@ -287,7 +287,10 @@ module RobotBlock = {
      * 2:
      */
     let deIndexStack world => List.map (fun {position, stack} => stack) world;
-    let output blockWorld => List.iteri displayLine (blockWorld |> deIndexStack);
+    let id blockWorld =>
+      fun
+      | _ => blockWorld;
+    let output blockWorld => blockWorld |> deIndexStack |> List.iteri displayLine |> id blockWorld;
     /* String conterpart of a RobotBlock.CommandType
      * Only there for convenience
      * Move 2 3 => "Move 2 onto 3"
@@ -348,4 +351,4 @@ let program = [
   "quit"
 ];
 
-program |> Parser.exec |> Execute.feed |> Execute.process |> Render.output;
+let world = program |> Parser.exec |> Execute.feed |> Execute.process |> Render.output;
