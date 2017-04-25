@@ -129,6 +129,10 @@ module RobotBlock = {
     let replaceStack world {position: p, stack: s} =>
       List.map (fun ({position, stack} as s2) => position == p ? {position, stack: s} : s2) world;
     let restack world s => List.fold_left (fun world x => push x x world) world s;
+    let isBlock b block => b == block;
+    let blockIsInStack block index {position, stack} =>
+      List.exists (isBlock block) stack ? position : index;
+    let find block => List.fold_left (blockIsInStack block) 0;
   };
   /*
    * * * * * * * * * * * * * * * * * * * * *
@@ -191,11 +195,7 @@ module RobotBlock = {
     let unstack b p world => Build.unstack b p world |> Process.matchOperations;
     let move a positionA positionB world =>
       world |> Build.move a positionA positionB |> Process.matchOperations;
-    let find b world =>
-      List.fold_left
-        (fun index {position, stack} => List.exists (fun x => x == b) stack ? position : index)
-        0
-        world;
+    let find b => Helpers.find b;
   };
   /*
    * * * * * * * * * * * * * * * * * * * * *
