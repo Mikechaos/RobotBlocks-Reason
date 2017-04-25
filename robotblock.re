@@ -344,32 +344,32 @@ module RobotBlock = {
   /*
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   *                                       *
-   *               Execute                 *
-   *                                       *
+   * * *                               * * *
+   * * *           Execute             * * *
+   * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
    */
   module Execute = {
+    open Grammar;
     let feed program => Make.robot [] program;
     let processOrder a b world =>
       fun
-      | Grammar.Move Grammar.Onto => Actions.moveOnto a b world
-      | Grammar.Move Grammar.Over => Actions.moveOver a b world
-      | Grammar.Pile Grammar.Onto => world /* TODO implement pile onto */
-      | Grammar.Pile Grammar.Over => world /* TODO implement pile over */
+      | Move Onto => Actions.moveOnto a b world
+      | Move Over => Actions.moveOver a b world
+      | Pile Onto => world /* TODO implement pile onto */
+      | Pile Over => world /* TODO implement pile over */
       | _ => world;
     let processList world rest =>
       fun
-      | Grammar.Init n => Make.robot (Actions.init n) rest
-      | Grammar.Order order a b => Make.robot (processOrder a b world order) rest
-      | Grammar.Quit => Make.robot world Grammar.NoMore;
+      | Init n => Make.robot (Actions.init n) rest
+      | Order order a b => Make.robot (processOrder a b world order) rest
+      | Quit => Make.robot world NoMore;
     let rec process =
       fun
-      | Grammar.BlockWorld world => world
-      | Grammar.BlockWorldProcessor world Grammar.NoMore => world
-      | Grammar.BlockWorldProcessor world (Grammar.List cmd rest) =>
-        process (processList world rest cmd);
+      | BlockWorld world => world
+      | BlockWorldProcessor world NoMore => world
+      | BlockWorldProcessor world (List cmd rest) => process (processList world rest cmd);
   };
 };
 
