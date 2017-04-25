@@ -54,6 +54,23 @@ module RobotBlock = {
     type robot =
       | BlockWorld blockWorld
       | BlockWorldProcessor blockWorld program;
+    /*
+     * Partial Operation
+     * Allow to chain operation on the blockWorld
+     * While it is in an invalid state
+     * Reaching Completed means a new valid state
+     */
+    module PartialOperation = {
+      type annotation =
+        | Unstack (blockStack, list int)
+        | Restack (list int);
+      type operation =
+        | PartialOperation blockWorld annotation
+        | Completed blockWorld;
+      let makeUnstack world stackPair => PartialOperation world (Unstack stackPair);
+      let makeRestack unstack world => PartialOperation world (Restack unstack);
+      let makeCompleted world => Completed world;
+    };
     /* Map all action commands to their string equivalent */
     let mapWords =
       fun
@@ -192,33 +209,27 @@ module RobotBlock = {
      */
     let replaceStack world {position: p, stack: s} =>
       List.map (fun ({position, stack} as s2) => position == p ? {position, stack: s} : s2) world;
-    let restack s world => List.fold_left (fun world x => push x x world) world s;
-    let restack2 world s => restack s world;
-    type annotation =
-      | Unstack (blockStack, list int)
-      | Restack (list int);
-    type operation =
-      | PartialOperation blockWorld annotation
-      | Completed blockWorld;
-    let getUnstackNice b p world =>
+    let restack world s => List.fold_left (fun world x => push x x world) world s;
+    let getUnstack b p world =>
       List.fold_left
         (fun finalStack {position, stack} => position == p ? splitStack stack b : finalStack)
         ([], [])
         world |> (
         fun (stack, unstack) =>
-          PartialOperation world (Unstack ({position: p, stack}, unstack)) /* TODO should be declared in Make*/
+          Grammar.PartialOperation.makeUnstack world ({position: p, stack}, unstack)
       );
-    let makeRestack unstack world => PartialOperation world (Restack unstack);
-    let makeCompleted world => Completed world;
     let matchAnnotations world =>
       fun
-      | Unstack (stack, unstack) => stack |> replaceStack world |> makeRestack unstack
-      | Restack unstack => unstack |> restack2 world |> makeCompleted;
+      | Grammar.PartialOperation.Unstack (stack, unstack) =>
+        stack |> replaceStack world |> Grammar.PartialOperation.makeRestack unstack
+      | Grammar.PartialOperation.Restack unstack =>
+        unstack |> restack world |> Grammar.PartialOperation.makeCompleted;
     let rec matchOperations =
       fun
-      | PartialOperation world annot => annot |> matchAnnotations world |> matchOperations
-      | Completed world => world;
-    let unstack b p world => getUnstackNice b p world |> matchOperations;
+      | Grammar.PartialOperation.PartialOperation world annot =>
+        annot |> matchAnnotations world |> matchOperations
+      | Grammar.PartialOperation.Completed world => world;
+    let unstack b p world => getUnstack b p world |> matchOperations;
     let move a positionA positionB world => world |> push a positionB |> pop a positionA;
     exception MalFormedStack (string, list int);
     let indexStack =
