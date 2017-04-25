@@ -28,9 +28,9 @@ module RobotBlock = {
   /*
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   *                                       *
-   *                 Grammar               *
-   *                                       *
+   * * *                               * * *
+   * * *             Grammar           * * *
+   * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
    * Defines the Grammar
@@ -57,23 +57,6 @@ module RobotBlock = {
     type robot =
       | BlockWorld blockWorld
       | BlockWorldProcessor blockWorld program;
-    /*
-     * Partial Operation
-     * Allow to chain operation on the blockWorld
-     * While it is in an invalid state
-     * Reaching Completed means a new valid state
-     */
-    module PartialOperation = {
-      type annotation =
-        | Unstack (blockStack, list int)
-        | Restack (list int);
-      type operation =
-        | PartialOperation blockWorld annotation
-        | Completed blockWorld;
-      let makeUnstack world stackPair => PartialOperation world (Unstack stackPair);
-      let makeRestack unstack world => PartialOperation world (Restack unstack);
-      let makeCompleted world => Completed world;
-    };
     /* Map all action commands to their string equivalent */
     let mapWords =
       fun
@@ -83,12 +66,136 @@ module RobotBlock = {
       | Pile Over => ("Pile", "over")
       | InvalidInstruction => ("Invalid", "Instruction");
   };
+  open Grammar;
   /*
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   *                                       *
-   *                    Make               *
-   *                                       *
+   * * *                               * * *
+   * * *           Helpers             * * *
+   * * *                               * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Perform manipulations on the block world
+   */
+  module Helpers = {
+    let push n p world =>
+      /* TODO - Refactor these List.map List.fold patterns
+       * The whole block world manipulation needs some love
+       * This is some simple matrix manipulation
+       */
+      List.map
+        (
+          fun ({position, stack: currentStack} as record) =>
+            position == p ?
+              List.fold_left
+                (fun {position, stack} e => {position, stack: [e, ...stack]})
+                {position, stack: [n]}
+                (Utils.reverse record.stack) :
+              record
+        )
+        world;
+    let pop n p world =>
+      List.map
+        (
+          fun ({position, stack: currentStack} as record) =>
+            position == p ?
+              List.fold_left
+                (fun {position, stack} e => {position, stack: n == e ? stack : [e, ...stack]})
+                {position, stack: []}
+                (Utils.reverse record.stack) :
+              record
+        )
+        world;
+    /* */
+    let splitStack s n => {
+      let rec splitRec found l (s1, s2) =>
+        switch l {
+        | [] => (Utils.reverse s1, Utils.reverse s2)
+        | [e, ...rest] =>
+          found ?
+            splitRec true rest (insertRight e (s1, s2)) :
+            e == n ?
+              splitRec true rest (insertLeft e (s1, s2)) :
+              splitRec false rest (insertLeft e (s1, s2))
+        }
+      and insertLeft e (s1, s2) => ([e, ...s1], s2)
+      and insertRight e (s1, s2) => (s1, [e, ...s2]);
+      splitRec false s ([], [])
+    };
+    let replaceStack world {position: p, stack: s} =>
+      List.map (fun ({position, stack} as s2) => position == p ? {position, stack: s} : s2) world;
+    let restack world s => List.fold_left (fun world x => push x x world) world s;
+  };
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * *                               * * *
+   * * *      PartialOperiation        * * *
+   * * *                               * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * Allow to chain operation on the blockWorld
+   * While it is in an invalid state
+   * Reaching Completed means a new valid state
+   */
+  module PartialOperations = {
+    module Type = {
+      type annotation =
+        | Unstack (blockStack, list int)
+        | Restack (list int);
+      type operation =
+        | PartialOperation blockWorld annotation
+        | Completed blockWorld;
+    };
+    module Make = {
+      open Type;
+      let unstack world stackPair => PartialOperation world (Unstack stackPair);
+      let restack unstack world => PartialOperation world (Restack unstack);
+      let completed world => Completed world;
+    };
+    module Build = {
+      let unstack b p world =>
+        List.fold_left
+          (
+            fun finalStack {position, stack} =>
+              position == p ? Helpers.splitStack stack b : finalStack
+          )
+          ([], [])
+          world |> (
+          fun (stack, unstack) => Make.unstack world ({position: p, stack}, unstack)
+        );
+      ();
+    };
+    module Process = {
+      open Type;
+      let matchAnnotations world =>
+        fun
+        | Unstack (blockStack, unstack) =>
+          blockStack |> Helpers.replaceStack world |> Make.restack unstack
+        | Restack unstack => unstack |> Helpers.restack world |> Make.completed;
+      let rec matchOperations =
+        fun
+        | PartialOperation world annot => annot |> matchAnnotations world |> matchOperations
+        | Completed world => world;
+    };
+    /*
+     * Public interface
+     */
+    let unstack b p world => Build.unstack b p world |> Process.matchOperations;
+    let move a positionA positionB world =>
+      world |> Helpers.push a positionB |> Helpers.pop a positionA;
+    let find b world =>
+      List.fold_left
+        (fun index {position, stack} => List.exists (fun x => x == b) stack ? position : index)
+        0
+        world;
+  };
+  /*
+   * * * * * * * * * * * * * * * * * * * * *
+   * * * * * * * * * * * * * * * * * * * * *
+   * * *                               * * *
+   * * *                Make           * * *
+   * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
    * Makers for the various block world types
@@ -120,9 +227,9 @@ module RobotBlock = {
   /*
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   *                                       *
-   *                Parser                 *
-   *                                       *
+   * * *                               * * *
+   * * *            Parser             * * *
+   * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
    * Parse the input
@@ -147,106 +254,26 @@ module RobotBlock = {
   /*
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   *                                       *
-   *             Action Helpers            *
-   *                                       *
+   * * *                               * * *
+   * * *         Action Helpers        * * *
+   * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
    * Helpers for actions to execute on the block world
    */
   module ActionHelpers = {
-    let find b world =>
-      List.fold_left
-        (fun index {position, stack} => List.exists (fun x => x == b) stack ? position : index)
-        0
-        world;
-    let splitStack s n => {
-      let rec splitRec found l (s1, s2) =>
-        switch l {
-        | [] => (Utils.reverse s1, Utils.reverse s2)
-        | [e, ...rest] =>
-          found ?
-            splitRec true rest (insertRight e (s1, s2)) :
-            e == n ?
-              splitRec true rest (insertLeft e (s1, s2)) :
-              splitRec false rest (insertLeft e (s1, s2))
-        }
-      and insertLeft e (s1, s2) => ([e, ...s1], s2)
-      and insertRight e (s1, s2) => (s1, [e, ...s2]);
-      splitRec false s ([], [])
-    };
-    let takeStack (stack, unstack) => stack;
-    let takeUnstack (stack, unstack) => unstack;
-    let push n p world =>
-      /* TODO - Refactor these List.map List.fold patterns
-       * The whole block world manipulation needs some love
-       * This is some simple matrix manipulation
-       */
-      List.map
-        (
-          fun ({position, stack: currentStack} as record) =>
-            position == p ?
-              List.fold_left
-                (fun {position, stack} e => {position, stack: [e, ...stack]})
-                {position, stack: [n]}
-                (Utils.reverse record.stack) :
-              record
-        )
-        world;
-    let pop n p world =>
-      List.map
-        (
-          fun ({position, stack: currentStack} as record) =>
-            position == p ?
-              List.fold_left
-                (fun {position, stack} e => {position, stack: n == e ? stack : [e, ...stack]})
-                {position, stack: []}
-                (Utils.reverse record.stack) :
-              record
-        )
-        world;
-    /* TODO - This portion needs complete rework.
-     * unstack is ugly and uselessly inefficient
-     * I need to create a partial operation type
-     * allowing to chain unfinished operation one into another
-     */
-    let replaceStack world {position: p, stack: s} =>
-      List.map (fun ({position, stack} as s2) => position == p ? {position, stack: s} : s2) world;
-    let restack world s => List.fold_left (fun world x => push x x world) world s;
-    let getUnstack b p world =>
-      List.fold_left
-        (fun finalStack {position, stack} => position == p ? splitStack stack b : finalStack)
-        ([], [])
-        world |> (
-        fun (stack, unstack) =>
-          Grammar.PartialOperation.makeUnstack world ({position: p, stack}, unstack)
-      );
-    let matchAnnotations world =>
-      fun
-      | Grammar.PartialOperation.Unstack (stack, unstack) =>
-        stack |> replaceStack world |> Grammar.PartialOperation.makeRestack unstack
-      | Grammar.PartialOperation.Restack unstack =>
-        unstack |> restack world |> Grammar.PartialOperation.makeCompleted;
-    let rec matchOperations =
-      fun
-      | Grammar.PartialOperation.PartialOperation world annot =>
-        annot |> matchAnnotations world |> matchOperations
-      | Grammar.PartialOperation.Completed world => world;
-    let unstack b p world => getUnstack b p world |> matchOperations;
-    let move a positionA positionB world => world |> push a positionB |> pop a positionA;
-    exception MalFormedStack (string, list int);
     let indexStack =
       fun
       | [position, ...rest] as stack => {position, stack}
-      | _ as stack => raise (MalFormedStack ("Stack is malformed", stack));
+      | _ as stack => raise (Exceptions.MalFormedStack ("Stack is malformed", stack));
     let mapIndexStack world => List.map indexStack world;
   };
   /*
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   *                                       *
-   *               Action                  *
-   *                                       *
+   * * *                               * * *
+   * * *           Action              * * *
+   * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
    * Allow to render the block world
@@ -260,23 +287,24 @@ module RobotBlock = {
      * Definitely work exploring though
      */
     let moveOnto a b world => {
-      let positionA = ActionHelpers.find a world;
-      let positionB = ActionHelpers.find b world;
-      world |> ActionHelpers.unstack a positionA |> ActionHelpers.unstack b positionB |>
-      ActionHelpers.move a positionA positionB
+      let positionA = PartialOperations.find a world;
+      let positionB = PartialOperations.find b world;
+      world |> PartialOperations.unstack a positionA |> PartialOperations.unstack b positionB |>
+      PartialOperations.move a positionA positionB
     };
     let moveOver a b world => {
-      let positionA = ActionHelpers.find a world;
-      let positionB = ActionHelpers.find b world;
-      world |> ActionHelpers.unstack a positionA |> ActionHelpers.move a positionA positionB
+      let positionA = PartialOperations.find a world;
+      let positionB = PartialOperations.find b world;
+      world |> PartialOperations.unstack a positionA |>
+      PartialOperations.move a positionA positionB
     };
   };
   /*
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   *                                       *
-   *               Render                  *
-   *                                       *
+   * * *                               * * *
+   * * *           Render              * * *
+   * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
    * Allow to render the block world
