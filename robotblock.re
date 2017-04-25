@@ -122,6 +122,10 @@ module RobotBlock = {
       and insertRight e (s1, s2) => (s1, [e, ...s2]);
       splitRec false s ([], [])
     };
+    let initialUnstack = ([], []);
+    let splitStackIfFound p b finalStack {position, stack} =>
+      position == p ? splitStack stack b : finalStack;
+    let splitStackInWorld b p => List.fold_left (splitStackIfFound p b) initialUnstack;
     let replaceStack world {position: p, stack: s} =>
       List.map (fun ({position, stack} as s2) => position == p ? {position, stack: s} : s2) world;
     let restack world s => List.fold_left (fun world x => push x x world) world s;
@@ -134,46 +138,48 @@ module RobotBlock = {
    * * *                               * * *
    * * * * * * * * * * * * * * * * * * * * *
    * * * * * * * * * * * * * * * * * * * * *
-   * Allow to chain operation on the blockWorld
-   * While it is in an invalid state
-   * Reaching Completed means a new valid state
+   * Allow to use a PartialOperation type
+   * to apply a list of simple operation on the block world,
+   * (during which it is in an invalid state)
+   * until reach fsing completion,
+   * (the next valid state)
+   * The chain of operationw from one valid state to the next
+   * can represent any desired valid command on the block world
    */
   module PartialOperations = {
     module Type = {
+      type block = {block: int, position: int};
       type annotation =
         | Unstack (blockStack, list int)
-        | Restack (list int);
+        | Restack (list int)
+        /* | Push int int */
+        /* | Pop int int; */
+        | Move block int;
       type operation =
         | PartialOperation blockWorld annotation
         | Completed blockWorld;
     };
+    open Type;
     module Make = {
-      open Type;
       let unstack world stackPair => PartialOperation world (Unstack stackPair);
       let restack unstack world => PartialOperation world (Restack unstack);
+      let move world block position => PartialOperation world (Move block position);
       let completed world => Completed world;
     };
     module Build = {
-      let initialUnstack = ([], []);
       let makeUnstack world position (stack, unstack) =>
         Make.unstack world ({position, stack}, unstack);
-      let unstack b p world =>
-        List.fold_left
-          (
-            fun finalStack {position, stack} =>
-              position == p ? Helpers.splitStack stack b : finalStack
-          )
-          initialUnstack
-          world |>
-        makeUnstack world p;
+      let unstack b p world => world |> Helpers.splitStackInWorld b p |> makeUnstack world p;
+      let move block position positionB world => Make.move world {block, position} positionB;
     };
     module Process = {
-      open Type;
       let matchAnnotations world =>
         fun
         | Unstack (blockStack, unstack) =>
           blockStack |> Helpers.replaceStack world |> Make.restack unstack
-        | Restack unstack => unstack |> Helpers.restack world |> Make.completed;
+        | Restack unstack => unstack |> Helpers.restack world |> Make.completed
+        | Move {block: blockA, position: positionA} positionB =>
+          world |> Helpers.push blockA positionB |> Helpers.pop blockA positionA |> Make.completed;
       let rec matchOperations =
         fun
         | PartialOperation world annot => annot |> matchAnnotations world |> matchOperations
@@ -184,7 +190,7 @@ module RobotBlock = {
      */
     let unstack b p world => Build.unstack b p world |> Process.matchOperations;
     let move a positionA positionB world =>
-      world |> Helpers.push a positionB |> Helpers.pop a positionA;
+      world |> Build.move a positionA positionB |> Process.matchOperations;
     let find b world =>
       List.fold_left
         (fun index {position, stack} => List.exists (fun x => x == b) stack ? position : index)
