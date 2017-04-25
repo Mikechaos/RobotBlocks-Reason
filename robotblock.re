@@ -185,31 +185,40 @@ module RobotBlock = {
               record
         )
         world;
-    let getUnstack b p world =>
-      List.fold_left
-        (
-          fun finalStack {position, stack} =>
-            position == p ? b |> splitStack stack |> takeUnstack : finalStack
-        )
-        []
-        world;
-    let restack s world => List.fold_left (fun world x => push x x world) world s;
     /* TODO - This portion needs complete rework.
      * unstack is ugly and uselessly inefficient
      * I need to create a partial operation type
      * allowing to chain unfinished operation one into another
      */
-    let unstack n p world => {
-      let newWorld =
-        List.map
-          (
-            fun ({position, stack} as record) =>
-              position == p ? {position, stack: n |> splitStack stack |> takeStack} : record
-          )
-          world;
-      let currentUnstack = getUnstack n p world;
-      newWorld |> restack currentUnstack
-    };
+    let replaceStack world {position: p, stack: s} =>
+      List.map (fun ({position, stack} as s2) => position == p ? {position, stack: s} : s2) world;
+    let restack s world => List.fold_left (fun world x => push x x world) world s;
+    let restack2 world s => restack s world;
+    type annotation =
+      | Unstack (blockStack, list int)
+      | Restack (list int);
+    type operation =
+      | PartialOperation blockWorld annotation
+      | Completed blockWorld;
+    let getUnstackNice b p world =>
+      List.fold_left
+        (fun finalStack {position, stack} => position == p ? splitStack stack b : finalStack)
+        ([], [])
+        world |> (
+        fun (stack, unstack) =>
+          PartialOperation world (Unstack ({position: p, stack}, unstack)) /* TODO should be declared in Make*/
+      );
+    let makeRestack unstack world => PartialOperation world (Restack unstack);
+    let makeCompleted world => Completed world;
+    let matchAnnotations world =>
+      fun
+      | Unstack (stack, unstack) => stack |> replaceStack world |> makeRestack unstack
+      | Restack unstack => unstack |> restack2 world |> makeCompleted;
+    let rec matchOperations =
+      fun
+      | PartialOperation world annot => annot |> matchAnnotations world |> matchOperations
+      | Completed world => world;
+    let unstack b p world => getUnstackNice b p world |> matchOperations;
     let move a positionA positionB world => world |> push a positionB |> pop a positionA;
     exception MalFormedStack (string, list int);
     let indexStack =
